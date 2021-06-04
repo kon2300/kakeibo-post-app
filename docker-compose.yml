@@ -1,0 +1,60 @@
+version: '3.8'
+
+volumes:
+  db_store:
+networks:
+  default:
+
+services:
+  app:
+    build: ./docker/app
+    container_name: front_vue
+    volumes:
+      - ./front:/front
+    ports:
+      - '8080:8080'
+    stdin_open: true
+    tty: true
+    environment:
+      TZ: Asia/Tokyo
+    command: yarn serve
+    networks:
+      - default
+
+  api:
+    image: node:16.2.0-alpine3.11
+    container_name: api_node
+    env_file: ./api/.env
+    volumes:
+      - ./api:/api
+    ports:
+      - '3000:3000'
+    working_dir: /api
+    stdin_open: true
+    tty: true
+    environment:
+      - TZ=Asia/Tokyo
+      - DEBUG=api:*
+    depends_on: 
+      - db
+    command: yarn start
+    networks:
+      - default
+
+  db:
+    image: mysql:8.0
+    env_file: ./db/.env
+    container_name: db_mysql
+    environment:
+      - MYSQL_DATABASE=${DB_DATABASE}
+      - MYSQL_USER=${DB_USERNAME}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+    volumes:
+      - ./db/conf/my.cnf:/etc/mysql/conf.d/mysql.cnf
+      - ./db/init_db:/docker-entrypoint-initdb.d
+      - db_store:/var/lib/mysql   
+    ports:
+      - 3306:3306
+    networks:
+    - default
